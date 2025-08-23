@@ -38,11 +38,10 @@ const Header = () => {
               </>
             )}
             <button
-              onClick={() => navigate('/directory')}
+              onClick={() => navigate('/auth')}
               className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center space-x-2"
             >
-              <Search className="h-4 w-4" />
-              <span>Explore</span>
+              <span>Login</span>
             </button>
           </nav>
 
@@ -64,11 +63,10 @@ const Header = () => {
               <a href="#tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Sustainability</a>
               <a href="#events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</a>
               <button
-                onClick={() => navigate('/directory')}
+                onClick={() => navigate('/auth')}
                 className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center space-x-2 w-fit"
               >
-                <Search className="h-4 w-4" />
-                <span>Explore</span>
+                <span>Login</span>
               </button>
             </nav>
           </div>
