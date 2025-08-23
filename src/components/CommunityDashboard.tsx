@@ -15,10 +15,14 @@ const CommunityDashboard = () => {
   }, []);
 
   const checkUser = async () => {
+    setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUser(user);
       await loadUserData(user.id);
+    } else {
+      // Redirect to auth if no user found
+      window.location.href = '/auth';
     }
     setLoading(false);
   };
