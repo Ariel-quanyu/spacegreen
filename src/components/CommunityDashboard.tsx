@@ -17,26 +17,57 @@ const CommunityDashboard = () => {
   const checkUser = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
+    
     if (user) {
       setUser(user);
-      await loadUserData(user.id);
+      try {
+        await loadUserData(user.id);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        // If profile doesn't exist, redirect to profile setup
+        if (!profile) {
+          setLoading(false);
+          return;
+        }
+      }
     } else {
       // Redirect to auth if no user found
       window.location.href = '/auth';
+      return;
     }
     setLoading(false);
   };
 
   const loadUserData = async (userId: string) => {
-    const [profileResult, activitiesResult, achievementsResult] = await Promise.all([
-      getUserProfile(userId),
-      getUserActivities(userId),
-      getUserAchievements(userId)
-    ]);
+    try {
+      const [profileResult, activitiesResult, achievementsResult] = await Promise.all([
+        getUserProfile(userId),
+        getUserActivities(userId),
+        getUserAchievements(userId)
+      ]);
 
-    if (profileResult.data) setProfile(profileResult.data);
-    if (activitiesResult.data) setActivities(activitiesResult.data);
-    if (achievementsResult.data) setAchievements(achievementsResult.data);
+      if (profileResult.data) {
+        setProfile(profileResult.data);
+      } else {
+        console.log('No profile found for user');
+        setProfile(null);
+      }
+      
+      if (activitiesResult.data) {
+        setActivities(activitiesResult.data);
+      } else {
+        setActivities([]);
+      }
+      
+      if (achievementsResult.data) {
+        setAchievements(achievementsResult.data);
+      } else {
+        setAchievements([]);
+      }
+    } catch (error) {
+      console.error('Error in loadUserData:', error);
+      throw error;
+    }
   };
 
   const calculateLevel = (xp: number) => {
