@@ -50,7 +50,39 @@ export const Header = () => {
       
       if (session?.user) {
         setUser(session.user);
-        const { data: profileData } = await getUserProfile(session.user.id);
+        const { data: profileData, error: profileError } = await getUserProfile(session.user.id);
+        
+        // If no profile exists, create one
+        if (!profileData && !profileError) {
+          const email = session.user.email || '';
+          const username = email.split('@')[0] || 'user';
+          const { data: newProfile } = await createUserProfile(
+            session.user.id,
+            email,
+            username,
+            username
+          );
+          if (mounted && newProfile) {
+            setProfile(newProfile);
+          }
+        }
+        
+        
+        // If no profile exists, create one
+        if (!profileData && !profileError) {
+          const email = user.email || '';
+          const username = email.split('@')[0] || 'user';
+          const { data: newProfile } = await createUserProfile(
+            user.id,
+            email,
+            username,
+            username
+          );
+          if (mounted && newProfile) {
+            setProfile(newProfile);
+          }
+        }
+        
         if (mounted && profileData) {
           setProfile(profileData);
         }
@@ -182,7 +214,7 @@ export const Header = () => {
                   <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-2 rounded-lg">
                     <User className="h-4 w-4 text-emerald-600" />
                     <span className="text-sm font-medium text-emerald-800">
-                      {profile?.full_name || profile?.username || user.email?.split('@')[0] || 'User'}
+                      {profile?.full_name || profile?.username || user.email?.split('@')[0] || user.email || 'User'}
                     </span>
                   </div>
                   <button
