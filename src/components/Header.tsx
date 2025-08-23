@@ -1,56 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Leaf, Search, User, LogOut } from 'lucide-react';
-import { supabase, signOut, getUserProfile } from '../lib/supabase';
+import { Menu, X, Leaf, Search } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const isDirectoryPage = location.pathname === '/directory';
-
-  // Check authentication status
-  React.useEffect(() => {
-    checkUser();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await loadUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUser(user);
-      await loadUserProfile(user.id);
-    }
-    setLoading(false);
-  };
-
-  const loadUserProfile = async (userId: string) => {
-    const { data: profileData } = await getUserProfile(userId);
-    if (profileData) setProfile(profileData);
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    setUser(null);
-    setProfile(null);
-    navigate('/');
-  };
 
   return (
     <header className="fixed w-full top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-emerald-100">
@@ -88,42 +44,6 @@ const Header = () => {
               <Search className="h-4 w-4" />
               <span>Explore</span>
             </button>
-            
-            {/* Authentication Status */}
-            {loading ? (
-              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-            ) : user ? (
-              <div className="flex items-center space-x-4">
-                <Link 
-                  to="/community"
-                  className="text-gray-700 hover:text-emerald-600 transition-colors duration-200 font-medium"
-                >
-                  Dashboard
-                </Link>
-                <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-2 rounded-lg">
-                  <User className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-medium text-emerald-800">
-                    {profile?.full_name || profile?.username || user.email?.split('@')[0]}
-                  </span>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="text-gray-700 hover:text-red-600 transition-colors duration-200 flex items-center space-x-1"
-                  title="Sign Out"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="text-sm">Sign Out</span>
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => navigate('/auth')}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center space-x-2"
-              >
-                <User className="h-4 w-4" />
-                <span>Sign In</span>
-              </button>
-            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -150,41 +70,6 @@ const Header = () => {
                 <Search className="h-4 w-4" />
                 <span>Explore</span>
               </button>
-              
-              {/* Mobile Authentication Status */}
-              {loading ? (
-                <div className="w-full h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-              ) : user ? (
-                <div className="space-y-3 pt-4 border-t border-gray-200">
-                  <Link 
-                    to="/community"
-                    className="text-gray-700 hover:text-emerald-600 transition-colors duration-200 font-medium block"
-                  >
-                    Dashboard
-                  </Link>
-                  <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-2 rounded-lg">
-                    <User className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-800">
-                      {profile?.full_name || profile?.username || user.email?.split('@')[0]}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-gray-700 hover:text-red-600 transition-colors duration-200 flex items-center space-x-2 w-fit"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center space-x-2 w-fit"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Sign In</span>
-                </button>
-              )}
             </nav>
           </div>
         )}

@@ -41,11 +41,7 @@ const AuthPage = () => {
         navigate('/community');
       }
     } catch (error: any) {
-      if (error.message.includes('User already registered')) {
-        setError('This email is already registered. Please sign in instead.');
-      } else {
-        setError(error.message);
-      }
+      setError(error.message);
     } finally {
       setLoading(false);
     }
