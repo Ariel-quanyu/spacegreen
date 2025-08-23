@@ -43,7 +43,7 @@ const Header = () => {
   const handleSignOut = async () => {
     await signOut();
     setIsDropdownOpen(false);
-    navigate('/');
+    window.location.href = '/';
   };
 
   const getUserDisplayName = () => {
