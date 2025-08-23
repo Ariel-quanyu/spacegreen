@@ -23,10 +23,10 @@ const Hero = () => {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button
-                onClick={() => navigate('/directory')}
+                onClick={() => navigate('/auth')}
                 className="bg-emerald-600 text-white px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
               >
-                <span>Explore Green Spaces</span>
+                <span>Login</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
               <button
