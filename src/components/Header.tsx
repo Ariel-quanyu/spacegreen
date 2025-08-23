@@ -2,7 +2,7 @@
     import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Leaf, Search, User, LogOut } from 'lucide-react';
-import { supabase, signOut, getUserProfile } from '../lib/supabase';
+import { supabase, signOut, getUserProfile, createUserProfile } from '../lib/supabase';
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,6 +25,19 @@ export const Header = () => {
           const { data: profileData } = await getUserProfile(user.id);
           if (mounted && profileData) {
             setProfile(profileData);
+          } else if (mounted && user) {
+            // Create profile if it doesn't exist
+            const email = user.email || '';
+            const username = email.split('@')[0] || 'user';
+            const { data: newProfile } = await createUserProfile(
+              user.id,
+              email,
+              username,
+              username
+            );
+            if (mounted && newProfile) {
+              setProfile(newProfile);
+            }
           }
         } else {
           setUser(null);
@@ -52,8 +65,12 @@ export const Header = () => {
         setUser(session.user);
         const { data: profileData, error: profileError } = await getUserProfile(session.user.id);
         
-        // If no profile exists, create one
-        if (!profileData && !profileError) {
+        if (profileData) {
+          if (mounted) {
+            setProfile(profileData);
+          }
+        } else {
+          // Create profile if it doesn't exist
           const email = session.user.email || '';
           const username = email.split('@')[0] || 'user';
           const { data: newProfile } = await createUserProfile(
@@ -65,26 +82,6 @@ export const Header = () => {
           if (mounted && newProfile) {
             setProfile(newProfile);
           }
-        }
-        
-        
-        // If no profile exists, create one
-        if (!profileData && !profileError) {
-          const email = user.email || '';
-          const username = email.split('@')[0] || 'user';
-          const { data: newProfile } = await createUserProfile(
-            user.id,
-            email,
-            username,
-            username
-          );
-          if (mounted && newProfile) {
-            setProfile(newProfile);
-          }
-        }
-        
-        if (mounted && profileData) {
-          setProfile(profileData);
         }
       } else {
         setUser(null);
@@ -137,9 +134,9 @@ export const Header = () => {
             {/* Authentication Status */}
             {loading ? (
               <div className="flex items-center space-x-4">
-                <div className="w-20 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                <div className="w-24 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
               </div>
-            ) : user ? (
+            ) : user && profile ? (
               <div className="flex items-center space-x-4">
                 <Link 
                   to="/community"
@@ -150,7 +147,7 @@ export const Header = () => {
                 <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-2 rounded-lg">
                   <User className="h-4 w-4 text-emerald-600" />
                   <span className="text-sm font-medium text-emerald-800">
-                    {profile?.full_name || profile?.username || user.email?.split('@')[0] || 'User'}
+                    {profile.full_name || profile.username || user.email?.split('@')[0] || 'User'}
                   </span>
                 </div>
                 <button
@@ -201,9 +198,9 @@ export const Header = () => {
               {/* Mobile Authentication Status */}
               {loading ? (
                 <div className="space-y-2 pt-4 border-t border-gray-200">
-                  <div className="w-32 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                  <div className="w-24 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
                 </div>
-              ) : user ? (
+              ) : user && profile ? (
                 <div className="space-y-3 pt-4 border-t border-gray-200">
                   <Link 
                     to="/community"
@@ -214,7 +211,7 @@ export const Header = () => {
                   <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-2 rounded-lg">
                     <User className="h-4 w-4 text-emerald-600" />
                     <span className="text-sm font-medium text-emerald-800">
-                      {profile?.full_name || profile?.username || user.email?.split('@')[0] || user.email || 'User'}
+                      {profile.full_name || profile.username || user.email?.split('@')[0] || 'User'}
                     </span>
                   </div>
                   <button
