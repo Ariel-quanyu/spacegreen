@@ -46,11 +46,26 @@ const CommunityDashboard = () => {
         getUserAchievements(userId)
       ]);
 
-      if (profileResult.data) {
-        setProfile(profileResult.data);
+      // If no profile exists, create one with basic info
+      if (!profileResult.data && user) {
+        console.log('No profile found, creating basic profile...');
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user?.email) {
+          const { data: newProfile, error: createError } = await createUserProfile(
+            userId,
+            userData.user.email,
+            userData.user.email.split('@')[0], // Use email prefix as username
+            userData.user.email.split('@')[0]  // Use email prefix as full name initially
+          );
+          if (!createError && newProfile) {
+            setProfile(newProfile);
+          } else {
+            console.error('Failed to create profile:', createError);
+            setProfile(null);
+          }
+        }
       } else {
-        console.log('No profile found for user');
-        setProfile(null);
+        setProfile(profileResult.data);
       }
       
       if (activitiesResult.data) {

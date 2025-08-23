@@ -25,13 +25,16 @@ const AuthPage = () => {
         
         if (data.user) {
           // Create user profile
-          const { error: profileError } = await createUserProfile(
+          const profileResult = await createUserProfile(
             data.user.id,
             email,
             username,
             fullName
           );
-          if (profileError) throw profileError;
+          if (profileResult.error) {
+            console.error('Profile creation error:', profileResult.error);
+            // Still navigate to community - we'll handle missing profile there
+          }
           
           navigate('/community');
         }

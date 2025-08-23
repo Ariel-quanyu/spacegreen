@@ -31,14 +31,23 @@ export const signOut = async () => {
 export const createUserProfile = async (userId: string, email: string, username: string, fullName: string) => {
   const { data, error } = await supabase
     .from('user_profiles')
-    .insert([
+    .upsert([
       {
         id: userId,
         email,
         username,
         full_name: fullName,
+        total_xp: 0,
+        events_attended: 0,
+        spaces_explored: 0,
+        events_created: 0
       }
-    ])
+    ], { 
+      onConflict: 'id',
+      ignoreDuplicates: false 
+    })
+    .select()
+    .single()
   return { data, error }
 }
 
