@@ -1,4 +1,20 @@
     
+    import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Leaf, Search, User, LogOut } from 'lucide-react';
+import { supabase, signOut, getUserProfile } from '../lib/supabase';
+
+export const Header = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+
     const initAuth = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -28,20 +44,19 @@
     };
 
     initAuth();
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Leaf, Search, User, LogOut } from 'lucide-react';
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-import { supabase, signOut, getUserProfile } from '../lib/supabase';
-
+      if (session?.user) {
+        setUser(session.user);
         const { data: profileData } = await getUserProfile(session.user.id);
         if (mounted && profileData) {
           setProfile(profileData);
         }
       } else {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+        setUser(null);
+        setProfile(null);
       }
       if (mounted) {
         setLoading(false);
@@ -194,4 +209,3 @@ import { supabase, signOut, getUserProfile } from '../lib/supabase';
     </header>
   );
 };
-    let mounted = true;
