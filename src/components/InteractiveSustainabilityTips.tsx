@@ -505,7 +505,6 @@ const InteractiveSustainabilityTips = () => {
                     </div>
                   )}
 
-                  <h3 className={`text-lg font-bold mb-2 ${isCompleted ? 'text-emerald-800' : 'text-gray-900'}`}>
                   <h3 className={`text-lg font-bold mb-2 ${isSaved ? 'text-emerald-800' : 'text-gray-900'}`}>
                     {tip.title}
                   </h3>
