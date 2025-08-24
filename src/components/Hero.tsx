@@ -30,7 +30,23 @@ const Hero = () => {
                 <ArrowRight className="h-5 w-5" />
               </button>
               <button
-                onClick={() => navigate('/auth')}
+                id="cta-discover-events"
+                onClick={() => {
+                  // Check if we're on the home page and the green spaces section exists
+                  const section = document.getElementById('section-green-spaces');
+                  const targetBtn = document.getElementById('btn-view-green-spaces');
+                  
+                  if (section) {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Focus the "View All Green Spaces" button after scroll finishes
+                    setTimeout(() => targetBtn?.focus(), 350);
+                    return;
+                  }
+                  
+                  // Navigate to Victoria directory if section not found
+                  navigate('/victoria-directory');
+                }}
+                aria-label="Discover green spaces"
                 className="border-2 border-emerald-600 text-emerald-600 px-8 py-4 rounded-xl hover:bg-emerald-600 hover:text-white transition-all duration-300 font-semibold"
               >
                 Discover Events

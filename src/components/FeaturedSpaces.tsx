@@ -53,7 +53,7 @@ const spaces = [
 const FeaturedSpaces = () => {
   return (
     <section id="spaces" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div id="section-green-spaces" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
             Featured Green Spaces
@@ -139,6 +139,7 @@ const FeaturedSpaces = () => {
         <div className="text-center mt-12">
           <Link 
             to="/victoria-directory"
+            id="btn-view-green-spaces"
             className="bg-gray-100 text-gray-700 px-8 py-4 rounded-xl hover:bg-gray-200 transition-colors duration-200 font-semibold inline-block"
           >
             View All Green Spaces
