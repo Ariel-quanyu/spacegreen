@@ -971,5 +971,3 @@ const AddActivityFromTipModal = ({ tip, onClose, onSave }: {
 };
 
 export default InteractiveSustainabilityTips;
-
-export default InteractiveSustainabilityTips
