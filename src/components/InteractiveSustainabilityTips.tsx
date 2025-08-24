@@ -431,7 +431,7 @@ const InteractiveSustainabilityTips = () => {
         }
       }
       return total;
-    }), { co2_kg: 0, money_aud: 0, water_l: 0 });
+    }, { co2_kg: 0, money_aud: 0, water_l: 0 });
   };
 
   // Check if tip has associated activity
@@ -551,7 +551,6 @@ const InteractiveSustainabilityTips = () => {
                 className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 ${
                   isCompleted ? 'ring-2 ring-emerald-500' : ''
                 } ${activityStatus === 'done' ? 'bg-emerald-50' : ''}`}
-                }`}
               >
                 {/* Card Header */}
                 <div className="p-6">
@@ -970,4 +969,7 @@ const AddActivityFromTipModal = ({ tip, onClose, onSave }: {
     </div>
   );
 };
+
 export default InteractiveSustainabilityTips;
+
+export default InteractiveSustainabilityTips
