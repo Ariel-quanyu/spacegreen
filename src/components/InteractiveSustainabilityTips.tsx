@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { Lightbulb, Droplets, Recycle, Sun, Leaf, Zap, Home, Car, ShoppingBag, Filter, Search, Clock, DollarSign, TrendingDown, ChevronRight, ChevronDown, Star, Plus, Check } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useGlobalState, showToast } from '../utils/globalState';
 
 // Data model for sustainability tips
@@ -361,6 +362,17 @@ const InteractiveSustainabilityTips = () => {
   return (
     <section className="py-20 bg-gradient-to-br from-emerald-50 to-teal-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back to Home Button */}
+        <div className="mb-8">
+          <Link 
+            to="/"
+            className="inline-flex items-center space-x-2 text-emerald-600 hover:text-emerald-700 transition-colors duration-200 font-medium"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span>Back to Home</span>
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
