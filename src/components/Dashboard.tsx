@@ -1,12 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Tag, FileText, Trash2, Edit3, Activity, TrendingUp, Award, Target } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Tag, FileText, Trash2, Edit3, Activity, TrendingUp, Award, Target, Star } from 'lucide-react';
 import { storage } from '../utils/storage';
+
+// Updated Activity interface to match new data model
+interface Activity {
+  id: string;
+  title: string;
+  category: string;
+  dateISO: string;
+  note: string;
+  status: 'planned' | 'in-progress' | 'done';
+  sourceType: 'tip' | 'custom';
+  tipId: string | null;
+  frequencyPerMonth: number;
+}
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
-  const [activities, setActivities] = useState([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+
+  // Get current user email for scoped storage
+  const getCurrentUserEmail = () => {
+    const user = storage.getUser();
+    return user?.email || 'anonymous';
+  };
 
   useEffect(() => {
     loadData();
@@ -16,7 +36,12 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const userData = storage.getUser();
-      const activitiesData = storage.getActivities();
+      
+      // Load user-scoped activities
+      const userEmail = userData?.email || 'anonymous';
+      const userActivitiesKey = `activities__${userEmail}`;
+      const storedActivities = localStorage.getItem(userActivitiesKey);
+      const activitiesData = storedActivities ? JSON.parse(storedActivities) : [];
       
       setUser(userData);
       setActivities(activitiesData);
@@ -27,17 +52,31 @@ const Dashboard = () => {
     }
   };
 
+  // Save activities to user-scoped localStorage
+  const saveActivities = (newActivities: Activity[]) => {
+    const userEmail = getCurrentUserEmail();
+    const userActivitiesKey = `activities__${userEmail}`;
+    localStorage.setItem(userActivitiesKey, JSON.stringify(newActivities));
+    setActivities(newActivities);
+  };
+
   const handleDeleteActivity = (id) => {
     if (window.confirm('Are you sure you want to delete this activity?')) {
       try {
-        storage.deleteActivity(id);
-        setActivities(prev => prev.filter(a => a.id !== id));
+        const updatedActivities = activities.filter(a => a.id !== id);
+        saveActivities(updatedActivities);
         showToast('Activity deleted successfully');
       } catch (error) {
         console.error('Error deleting activity:', error);
         showToast('Error deleting activity', 'error');
       }
     }
+  };
+
+  const handleAddActivity = (activity: Activity) => {
+    saveActivities([...activities, activity]);
+    setShowAddActivityModal(false);
+    showToast('Activity added successfully!');
   };
 
   const showToast = (message, type = 'success') => {
@@ -61,6 +100,7 @@ const Dashboard = () => {
 
   const getStats = () => {
     const totalActivities = activities.length;
+    const doneActivities = activities.filter(a => a.status === 'done').length;
     const thisMonth = activities.filter(a => {
       const activityDate = new Date(a.dateISO);
       const now = new Date();
@@ -68,9 +108,9 @@ const Dashboard = () => {
              activityDate.getFullYear() === now.getFullYear();
     }).length;
     
-    const categories = [...new Set(activities.map(a => a.category))].length;
+    const inProgress = activities.filter(a => a.status === 'in-progress').length;
     
-    return { totalActivities, thisMonth, categories };
+    return { totalActivities, doneActivities, thisMonth, inProgress };
   };
 
   const formatDate = (dateISO) => {
@@ -95,6 +135,15 @@ const Dashboard = () => {
       'Other': 'bg-gray-100 text-gray-700'
     };
     return colors[category] || colors['Other'];
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      'planned': 'bg-blue-100 text-blue-700',
+      'in-progress': 'bg-yellow-100 text-yellow-700',
+      'done': 'bg-green-100 text-green-700'
+    };
+    return colors[status] || colors['planned'];
   };
 
   if (loading) {
@@ -169,24 +218,24 @@ const Dashboard = () => {
 
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center space-x-4">
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+              <div className="bg-green-100 p-3 rounded-xl">
+                <Award className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.thisMonth}</h3>
-                <p className="text-gray-600">This Month</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.doneActivities}</h3>
+                <p className="text-gray-600">Completed</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center space-x-4">
-              <div className="bg-purple-100 p-3 rounded-xl">
-                <Target className="h-6 w-6 text-purple-600" />
+              <div className="bg-yellow-100 p-3 rounded-xl">
+                <TrendingUp className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.categories}</h3>
-                <p className="text-gray-600">Categories</p>
+                <h3 className="text-2xl font-bold text-gray-900">{stats.inProgress}</h3>
+                <p className="text-gray-600">In Progress</p>
               </div>
             </div>
           </div>
@@ -200,12 +249,12 @@ const Dashboard = () => {
               Your Activities
             </h2>
             <Link
-              to="/add-activity"
+              onClick={() => setShowAddActivityModal(true)}
               className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 font-medium flex items-center space-x-2"
             >
               <Plus className="h-4 w-4" />
               <span>Add Activity</span>
-            </Link>
+            </button>
           </div>
 
           {activities.length === 0 ? (
@@ -216,13 +265,13 @@ const Dashboard = () => {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No activities yet</h3>
               <p className="text-gray-600 mb-6">Start tracking your activities to see your progress here.</p>
-              <Link
-                to="/add-activity"
+              <button
+                onClick={() => setShowAddActivityModal(true)}
                 className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors duration-200 font-medium inline-flex items-center space-x-2"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Your First Activity</span>
-              </Link>
+              </button>
             </div>
           ) : (
             /* Activities List */
@@ -239,6 +288,15 @@ const Dashboard = () => {
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(activity.category)}`}>
                           {activity.category}
                         </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.status)}`}>
+                          {activity.status}
+                        </span>
+                        {activity.tipId && (
+                          <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                            <Star className="h-3 w-3" />
+                            <span>Tip</span>
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
@@ -246,10 +304,12 @@ const Dashboard = () => {
                           <Calendar className="h-4 w-4" />
                           <span>{formatDate(activity.dateISO)}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Tag className="h-4 w-4" />
-                          <span>{activity.category}</span>
-                        </div>
+                        {activity.frequencyPerMonth > 1 && (
+                          <div className="flex items-center space-x-1">
+                            <TrendingUp className="h-4 w-4" />
+                            <span>{activity.frequencyPerMonth}x/month</span>
+                          </div>
+                        )}
                       </div>
 
                       {activity.note && (
@@ -261,13 +321,13 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">
-                      <Link
-                        to={`/edit-activity/${activity.id}`}
+                      <button
+                        onClick={() => {/* TODO: Implement edit */}}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                         title="Edit activity"
                       >
                         <Edit3 className="h-4 w-4" />
-                      </Link>
+                      </button>
                       <button
                         onClick={() => handleDeleteActivity(activity.id)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
@@ -289,13 +349,218 @@ const Dashboard = () => {
           <p className="text-emerald-100 mb-6">
             Keep tracking your progress and build better habits
           </p>
-          <Link
-            to="/add-activity"
+          <button
+            onClick={() => setShowAddActivityModal(true)}
             className="bg-white text-emerald-600 px-8 py-3 rounded-xl hover:bg-emerald-50 transition-colors duration-200 font-semibold inline-flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
             <span>Add New Activity</span>
-          </Link>
+          </button>
+        </div>
+      </div>
+
+      {/* Add Activity Modal */}
+      {showAddActivityModal && (
+        <AddActivityModal
+          onClose={() => setShowAddActivityModal(false)}
+          onSave={handleAddActivity}
+        />
+      )}
+    </div>
+  );
+};
+
+// Add Activity Modal Component
+const AddActivityModal = ({ onClose, onSave }: {
+  onClose: () => void;
+  onSave: (activity: Activity) => void;
+}) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    category: '',
+    dateISO: new Date().toISOString().split('T')[0],
+    note: '',
+    status: 'planned' as const,
+    frequencyPerMonth: 1
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    const newErrors: Record<string, string> = {};
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.category.trim()) newErrors.category = 'Category is required';
+    if (!formData.dateISO) newErrors.dateISO = 'Date is required';
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const activity: Activity = {
+      id: `activity_${Date.now()}`,
+      title: formData.title.trim(),
+      category: formData.category.trim(),
+      dateISO: formData.dateISO,
+      note: formData.note.trim(),
+      status: formData.status,
+      sourceType: 'custom',
+      tipId: null,
+      frequencyPerMonth: formData.frequencyPerMonth
+    };
+
+    onSave(activity);
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  // Handle escape key
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Add New Activity</h2>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              ×
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  errors.title ? 'border-red-500' : 'border-gray-200'
+                }`}
+                placeholder="Activity title"
+              />
+              {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  errors.category ? 'border-red-500' : 'border-gray-200'
+                }`}
+              >
+                <option value="">Select category</option>
+                <option value="Energy">Energy</option>
+                <option value="Water">Water</option>
+                <option value="Transport">Transport</option>
+                <option value="Waste">Waste</option>
+                <option value="Food">Food</option>
+                <option value="Work">Work</option>
+                <option value="Personal">Personal</option>
+                <option value="Health">Health</option>
+                <option value="Learning">Learning</option>
+                <option value="Social">Social</option>
+                <option value="Other">Other</option>
+              </select>
+              {errors.category && <p className="text-red-600 text-xs mt-1">{errors.category}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date *
+              </label>
+              <input
+                type="date"
+                value={formData.dateISO}
+                onChange={(e) => handleInputChange('dateISO', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  errors.dateISO ? 'border-red-500' : 'border-gray-200'
+                }`}
+              />
+              {errors.dateISO && <p className="text-red-600 text-xs mt-1">{errors.dateISO}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleInputChange('status', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="planned">Planned</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Frequency per Month
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={formData.frequencyPerMonth}
+                onChange={(e) => handleInputChange('frequencyPerMonth', parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Note
+              </label>
+              <textarea
+                value={formData.note}
+                onChange={(e) => handleInputChange('note', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Optional notes..."
+              />
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+              >
+                Save Activity
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

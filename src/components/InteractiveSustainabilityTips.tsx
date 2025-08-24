@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Droplets, Recycle, Sun, Leaf, Zap, Home, Car, ShoppingBag, Filter, Search, Clock, DollarSign, TrendingDown, ChevronRight, ChevronDown, Star } from 'lucide-react';
+import { Lightbulb, Droplets, Recycle, Sun, Leaf, Zap, Home, Car, ShoppingBag, Filter, Search, Clock, DollarSign, TrendingDown, ChevronRight, ChevronDown, Star, Plus, Check } from 'lucide-react';
+import { storage } from '../utils/storage';
 
 // Data model for sustainability tips
 interface Tip {
@@ -16,6 +17,19 @@ interface Tip {
   summary: string;
   steps: string[];
   tags: string[];
+}
+
+// Activity interface to match the new data model
+interface Activity {
+  id: string;
+  title: string;
+  category: string;
+  dateISO: string;
+  note: string;
+  status: 'planned' | 'in-progress' | 'done';
+  sourceType: 'tip' | 'custom';
+  tipId: string | null;
+  frequencyPerMonth: number;
 }
 
 // Seed data for sustainability tips
@@ -249,6 +263,15 @@ const InteractiveSustainabilityTips = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
   const [completedTips, setCompletedTips] = useState<Set<string>>(new Set());
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [selectedTipForActivity, setSelectedTipForActivity] = useState<Tip | null>(null);
+
+  // Get current user email for scoped storage
+  const getCurrentUserEmail = () => {
+    const user = storage.getUser();
+    return user?.email || 'anonymous';
+  };
 
   // Initialize tips data
   useEffect(() => {
@@ -265,8 +288,20 @@ const InteractiveSustainabilityTips = () => {
       localStorage.setItem('tips_data', JSON.stringify(seedTips));
     }
 
-    if (storedCompleted) {
-      setCompletedTips(new Set(JSON.parse(storedCompleted)));
+    // Load user-scoped completed tips and activities
+    const userEmail = getCurrentUserEmail();
+    const userCompletedKey = `tips_done__${userEmail}`;
+    const userActivitiesKey = `activities__${userEmail}`;
+    
+    const storedUserCompleted = localStorage.getItem(userCompletedKey);
+    const storedUserActivities = localStorage.getItem(userActivitiesKey);
+
+    if (storedUserCompleted) {
+      setCompletedTips(new Set(JSON.parse(storedUserCompleted)));
+    }
+
+    if (storedUserActivities) {
+      setActivities(JSON.parse(storedUserActivities));
     }
   }, []);
 
@@ -285,27 +320,128 @@ const InteractiveSustainabilityTips = () => {
     setFilteredTips(filtered);
   }, [tips, selectedCategory, selectedDifficulty, searchTerm]);
 
+  // Save activities to user-scoped localStorage
+  const saveActivities = (newActivities: Activity[]) => {
+    const userEmail = getCurrentUserEmail();
+    const userActivitiesKey = `activities__${userEmail}`;
+    localStorage.setItem(userActivitiesKey, JSON.stringify(newActivities));
+    setActivities(newActivities);
+  };
+
+  // Save completed tips to user-scoped localStorage
+  const saveCompletedTips = (newCompleted: Set<string>) => {
+    const userEmail = getCurrentUserEmail();
+    const userCompletedKey = `tips_done__${userEmail}`;
+    localStorage.setItem(userCompletedKey, JSON.stringify([...newCompleted]));
+    setCompletedTips(newCompleted);
+  };
+
+  // Add activity from tip
+  const addActivityFromTip = (tip: Tip) => {
+    setSelectedTipForActivity(tip);
+    setShowAddActivityModal(true);
+  };
+
+  // Mark tip as done (creates activity if needed)
+  const markTipDone = (tipId: string) => {
+    const tip = tips.find(t => t.id === tipId);
+    if (!tip) return;
+
+    // Check if there's already an activity for this tip
+    const existingActivity = activities.find(a => a.tipId === tipId);
+    
+    if (existingActivity) {
+      // Update existing activity to done
+      const updatedActivities = activities.map(a => 
+        a.tipId === tipId ? { ...a, status: 'done' as const, dateISO: new Date().toISOString().split('T')[0] } : a
+      );
+      saveActivities(updatedActivities);
+    } else {
+      // Create new activity with done status
+      const newActivity: Activity = {
+        id: `activity_${Date.now()}`,
+        title: tip.title,
+        category: tip.category,
+        dateISO: new Date().toISOString().split('T')[0],
+        note: `Completed: ${tip.summary}`,
+        status: 'done',
+        sourceType: 'tip',
+        tipId: tip.id,
+        frequencyPerMonth: 1
+      };
+      saveActivities([...activities, newActivity]);
+    }
+
+    // Also mark tip as completed
+    const newCompleted = new Set(completedTips);
+    newCompleted.add(tipId);
+    saveCompletedTips(newCompleted);
+
+    // Show toast
+    showToast('Tip marked as done! Activity recorded.', 'success');
+  };
+
+  // Toggle tip completion (for the star button)
   const toggleTipCompletion = (tipId: string) => {
     const newCompleted = new Set(completedTips);
     if (newCompleted.has(tipId)) {
       newCompleted.delete(tipId);
+      showToast('Tip unmarked', 'info');
     } else {
-      newCompleted.add(tipId);
+      markTipDone(tipId);
+      return; // markTipDone handles the toast
     }
-    setCompletedTips(newCompleted);
-    localStorage.setItem('completed_tips', JSON.stringify([...newCompleted]));
+    saveCompletedTips(newCompleted);
+  };
+
+  // Show toast notification
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const toast = document.createElement('div');
+    const bgColor = type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-blue-600' : 'bg-emerald-600';
+    toast.className = `fixed top-20 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300`;
+    toast.textContent = message;
+    toast.setAttribute('aria-live', 'polite');
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast);
+      }
+    }, 3000);
   };
 
   const calculateTotalImpact = () => {
-    const completedTipsList = tips.filter(tip => completedTips.has(tip.id));
-    return completedTipsList.reduce((total, tip) => ({
-      co2_kg: total.co2_kg + tip.impact.co2_kg,
-      money_aud: total.money_aud + tip.impact.money_aud,
-      water_l: total.water_l + tip.impact.water_l
+    // Calculate impact from activities marked as done this month
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const doneActivities = activities.filter(activity => 
+      activity.status === 'done' && 
+      activity.dateISO.startsWith(currentMonth)
+    );
+
+    return doneActivities.reduce((total, activity) => {
+      if (activity.tipId) {
+        const tip = tips.find(t => t.id === activity.tipId);
+        if (tip) {
+          return {
+            co2_kg: total.co2_kg + (tip.impact.co2_kg * activity.frequencyPerMonth),
+            money_aud: total.money_aud + (tip.impact.money_aud * activity.frequencyPerMonth),
+            water_l: total.water_l + (tip.impact.water_l * activity.frequencyPerMonth)
+          };
+        }
+      }
+      return total;
     }), { co2_kg: 0, money_aud: 0, water_l: 0 });
   };
 
+  // Check if tip has associated activity
+  const getTipActivityStatus = (tipId: string) => {
+    const activity = activities.find(a => a.tipId === tipId);
+    return activity?.status || null;
+  };
+
   const totalImpact = calculateTotalImpact();
+  const completedActivitiesCount = activities.filter(a => a.status === 'done').length;
 
   return (
     <section className="py-20 bg-gradient-to-br from-emerald-50 to-teal-50">
@@ -321,11 +457,11 @@ const InteractiveSustainabilityTips = () => {
         </div>
 
         {/* Impact Summary */}
-        {completedTips.size > 0 && (
+        {completedActivitiesCount > 0 && (
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 mb-8 text-white">
             <h3 className="text-xl font-bold mb-4 flex items-center">
               <Star className="h-6 w-6 mr-2" />
-              Your Environmental Impact
+              Your Environmental Impact This Month
             </h3>
             <div className="grid md:grid-cols-3 gap-4">
               <div className="bg-white/20 rounded-xl p-4 text-center">
@@ -346,7 +482,7 @@ const InteractiveSustainabilityTips = () => {
             </div>
             <div className="mt-4 text-center">
               <span className="text-emerald-100">
-                You've completed {completedTips.size} of {tips.length} sustainability tips!
+                You've completed {completedActivitiesCount} activities this month from {tips.length} available tips!
               </span>
             </div>
           </div>
@@ -406,6 +542,7 @@ const InteractiveSustainabilityTips = () => {
           {filteredTips.map((tip) => {
             const IconComponent = categoryIcons[tip.category as keyof typeof categoryIcons] || Leaf;
             const isCompleted = completedTips.has(tip.id);
+            const activityStatus = getTipActivityStatus(tip.id);
             const isExpanded = expandedTip === tip.id;
 
             return (
@@ -413,6 +550,7 @@ const InteractiveSustainabilityTips = () => {
                 key={tip.id}
                 className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 ${
                   isCompleted ? 'ring-2 ring-emerald-500' : ''
+                } ${activityStatus === 'done' ? 'bg-emerald-50' : ''}`}
                 }`}
               >
                 {/* Card Header */}
@@ -438,6 +576,19 @@ const InteractiveSustainabilityTips = () => {
                       <Star className={`h-5 w-5 ${isCompleted ? 'fill-current' : ''}`} />
                     </button>
                   </div>
+
+                  {/* Activity Status Badge */}
+                  {activityStatus && (
+                    <div className="mb-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        activityStatus === 'done' ? 'bg-emerald-100 text-emerald-700' :
+                        activityStatus === 'in-progress' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        Activity: {activityStatus}
+                      </span>
+                    </div>
+                  )}
 
                   <h3 className={`text-lg font-bold mb-2 ${isCompleted ? 'text-emerald-800' : 'text-gray-900'}`}>
                     {tip.title}
@@ -481,17 +632,42 @@ const InteractiveSustainabilityTips = () => {
                   </div>
 
                   {/* Expand Button */}
-                  <button
-                    onClick={() => setExpandedTip(isExpanded ? null : tip.id)}
-                    className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                  >
-                    <span>{isExpanded ? 'Hide Steps' : 'View Steps'}</span>
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setExpandedTip(isExpanded ? null : tip.id)}
+                      className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
+                    >
+                      <span>{isExpanded ? 'Hide Steps' : 'View Steps'}</span>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => addActivityFromTip(tip)}
+                        className="bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-1 text-sm"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Add to Activities</span>
+                      </button>
+                      <button
+                        onClick={() => markTipDone(tip.id)}
+                        disabled={isCompleted}
+                        className={`py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1 text-sm ${
+                          isCompleted 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        }`}
+                      >
+                        <Check className="h-3 w-3" />
+                        <span>{isCompleted ? 'Done' : 'Mark Done'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Expanded Content */}
@@ -568,8 +744,230 @@ const InteractiveSustainabilityTips = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Activity Modal */}
+      {showAddActivityModal && (
+        <AddActivityFromTipModal
+          tip={selectedTipForActivity}
+          onClose={() => {
+            setShowAddActivityModal(false);
+            setSelectedTipForActivity(null);
+          }}
+          onSave={(activity) => {
+            saveActivities([...activities, activity]);
+            setShowAddActivityModal(false);
+            setSelectedTipForActivity(null);
+            showToast('Activity added successfully!');
+          }}
+        />
+      )}
     </section>
   );
 };
 
+// Add Activity Modal Component
+const AddActivityFromTipModal = ({ tip, onClose, onSave }: {
+  tip: Tip | null;
+  onClose: () => void;
+  onSave: (activity: Activity) => void;
+}) => {
+  const [formData, setFormData] = useState({
+    title: tip?.title || '',
+    category: tip?.category || '',
+    dateISO: new Date().toISOString().split('T')[0],
+    note: tip ? `From tip: ${tip.summary}` : '',
+    status: 'planned' as const,
+    frequencyPerMonth: 1
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    const newErrors: Record<string, string> = {};
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.category.trim()) newErrors.category = 'Category is required';
+    if (!formData.dateISO) newErrors.dateISO = 'Date is required';
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const activity: Activity = {
+      id: `activity_${Date.now()}`,
+      title: formData.title.trim(),
+      category: formData.category.trim(),
+      dateISO: formData.dateISO,
+      note: formData.note.trim(),
+      status: formData.status,
+      sourceType: tip ? 'tip' : 'custom',
+      tipId: tip?.id || null,
+      frequencyPerMonth: formData.frequencyPerMonth
+    };
+
+    onSave(activity);
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  // Handle escape key and backdrop click
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">
+              {tip ? 'Add Activity from Tip' : 'Add Custom Activity'}
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              ×
+            </button>
+          </div>
+
+          {tip && (
+            <div className="bg-emerald-50 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-emerald-800 mb-2">{tip.title}</h3>
+              <p className="text-sm text-emerald-600 mb-2">{tip.summary}</p>
+              <div className="flex items-center space-x-4 text-xs text-emerald-600">
+                <span>💰 ${tip.impact.money_aud}/month</span>
+                <span>🌱 {tip.impact.co2_kg}kg CO₂/month</span>
+                {tip.impact.water_l > 0 && <span>💧 {tip.impact.water_l}L/month</span>}
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  errors.title ? 'border-red-500' : 'border-gray-200'
+                }`}
+                placeholder="Activity title"
+              />
+              {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  errors.category ? 'border-red-500' : 'border-gray-200'
+                }`}
+              >
+                <option value="">Select category</option>
+                <option value="Energy">Energy</option>
+                <option value="Water">Water</option>
+                <option value="Transport">Transport</option>
+                <option value="Waste">Waste</option>
+                <option value="Food">Food</option>
+              </select>
+              {errors.category && <p className="text-red-600 text-xs mt-1">{errors.category}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date *
+              </label>
+              <input
+                type="date"
+                value={formData.dateISO}
+                onChange={(e) => handleInputChange('dateISO', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                  errors.dateISO ? 'border-red-500' : 'border-gray-200'
+                }`}
+              />
+              {errors.dateISO && <p className="text-red-600 text-xs mt-1">{errors.dateISO}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleInputChange('status', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="planned">Planned</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Frequency per Month
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={formData.frequencyPerMonth}
+                onChange={(e) => handleInputChange('frequencyPerMonth', parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Note
+              </label>
+              <textarea
+                value={formData.note}
+                onChange={(e) => handleInputChange('note', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Optional notes..."
+              />
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+              >
+                Save Activity
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
 export default InteractiveSustainabilityTips;
