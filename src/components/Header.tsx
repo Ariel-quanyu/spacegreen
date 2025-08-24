@@ -223,21 +223,23 @@ const Header = () => {
                     aria-orientation="vertical"
                   >
                     <Link
-                      to="/community"
+                      to="/dashboard"
                       className="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-200"
                       role="menuitem"
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       Dashboard
                     </Link>
-                    <Link
-                      to="/add-activity"
-                      className="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-200"
+                    <button
+                      onClick={() => {
+                        setShowAddActivityModal(true);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-200"
                       role="menuitem"
-                      onClick={() => setIsDropdownOpen(false)}
                     >
                       Add Activity
-                    </Link>
+                    </button>
                     <hr className="my-2" />
                     <button
                       onClick={handleSignOut}
@@ -295,10 +297,7 @@ const Header = () => {
                     Dashboard
                   </Link>
                   <button
-                    onClick={() => {
-                      setShowAddActivityModal(true);
-                      setIsMenuOpen(false);
-                    }}
+                    onClick={() => setShowAddActivityModal(true)}
                     className="text-gray-700 hover:text-emerald-600 transition-colors duration-200"
                   >
                     Add Activity

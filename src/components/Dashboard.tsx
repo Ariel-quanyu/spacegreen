@@ -13,6 +13,7 @@ const Dashboard = () => {
   }, []);
 
   const loadData = () => {
+    setLoading(true);
     try {
       const userData = storage.getUser();
       const activitiesData = storage.getActivities();
@@ -112,8 +113,8 @@ const Dashboard = () => {
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Access Denied</h1>
-            <p className="text-gray-600 mb-8">Please sign in to view your dashboard.</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Your Dashboard</h1>
+            <p className="text-gray-600 mb-8">Please sign in to track your activities and view your progress.</p>
             <Link 
               to="/auth"
               className="bg-emerald-600 text-white px-8 py-3 rounded-xl hover:bg-emerald-700 transition-colors duration-200 font-semibold inline-block"

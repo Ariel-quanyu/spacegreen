@@ -33,8 +33,8 @@ function App() {
           } />
           <Route path="/directory" element={<GreenSpacesDirectory />} />
           <Route path="/victoria-directory" element={<VictoriaGreenSpacesDirectory />} />
-          <Route path="/community" element={<CommunityDashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/community" element={<CommunityDashboard />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/add-activity" element={<AddActivityPage />} />
         </Routes>
