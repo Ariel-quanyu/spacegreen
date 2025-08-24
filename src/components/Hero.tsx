@@ -36,6 +36,12 @@ const Hero = () => {
                 Discover Events
               </button>
               <button
+                onClick={() => navigate('/victoria-directory')}
+                className="border-2 border-emerald-600 text-emerald-600 px-8 py-4 rounded-xl hover:bg-emerald-600 hover:text-white transition-all duration-300 font-semibold"
+              >
+                Discover Events
+              </button>
+              <button
                 onClick={() => navigate('/calculator')}
                 className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold"
               >
