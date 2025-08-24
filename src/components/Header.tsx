@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Leaf, User, LogOut } from 'lucide-react';
 import { supabase, getUserProfile, signOut } from '../lib/supabase';
+import { storage } from '../utils/storage';
+import AddActivityModal from './AddActivityModal';
 
 // Toast component for notifications
 const Toast = ({ message, isVisible, onClose }) => {
@@ -36,6 +38,7 @@ const Header = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isDirectoryPage = location.pathname === '/directory';
@@ -62,11 +65,11 @@ const Header = () => {
     setIsLoggedIn(true);
     
     // Store auth state in localStorage
-    localStorage.setItem('auth_user', JSON.stringify({
+    storage.setUser({
       id: user.id,
       email: user.email,
-      timestamp: Date.now()
-    }));
+      username: user.email?.split('@')[0] || 'User'
+    });
     
     // Fetch user profile
     const { data: profileData } = await getUserProfile(user.id);
@@ -79,29 +82,22 @@ const Header = () => {
     setProfile(null);
     setIsLoggedIn(false);
     
-    // Clear all auth state and tokens
-    localStorage.removeItem('auth_user');
-    sessionStorage.clear();
-    
-    // Clear any cookies (if using them)
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
+    // Clear all auth state using storage utility
+    storage.signOut();
   };
 
   const checkUser = async () => {
-    // First check localStorage for persisted auth
-    const storedUser = localStorage.getItem('auth_user');
+    // First check localStorage for persisted auth using storage utility
+    const storedUser = storage.getUser();
     if (storedUser) {
       try {
-        const userData = JSON.parse(storedUser);
         // Check if stored auth is not too old (optional: 7 days)
-        const isExpired = Date.now() - userData.timestamp > 7 * 24 * 60 * 60 * 1000;
+        const isExpired = Date.now() - storedUser.timestamp > 7 * 24 * 60 * 60 * 1000;
         if (isExpired) {
-          localStorage.removeItem('auth_user');
+          storage.setUser(null);
         }
       } catch (error) {
-        localStorage.removeItem('auth_user');
+        storage.setUser(null);
       }
     }
 
@@ -143,6 +139,14 @@ const Header = () => {
     }
   };
 
+  const handleAddActivitySuccess = (newActivity) => {
+    setShowAddActivityModal(false);
+    setToastMessage('Activity added successfully!');
+    setShowToast(true);
+    
+    // If we're on the dashboard, we could refresh the data here
+    // For now, the dashboard will reload when navigated to
+  };
   const closeToast = () => {
     setIsDropdownOpen(false);
   };
@@ -284,20 +288,24 @@ const Header = () => {
               {isLoggedIn && user ? (
                 <>
                   <Link 
-                    to="/community"
+                    to="/dashboard"
                     className="text-gray-700 hover:text-emerald-600 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Dashboard
                   </Link>
-                  <Link 
-                    to="/add-activity"
+                  <button
+                    onClick={() => {
+                      setShowAddActivityModal(true);
+                      setIsMenuOpen(false);
+                    }}
+                      setShowAddActivityModal(true);
+                      setIsDropdownOpen(false);
+                    }}
                     className="text-gray-700 hover:text-emerald-600 transition-colors duration-200"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
                     Add Activity
-                  </Link>
-                  <div className="pt-2 border-t border-gray-200">
+                  </button>
+                  </button>
                     <div className="text-sm text-gray-600 mb-2">Signed in as {getUserDisplayName()}</div>
                     <button
                       onClick={handleSignOut}
@@ -328,6 +336,13 @@ const Header = () => {
         )}
       </div>
       </header>
+      
+      {/* Add Activity Modal */}
+      <AddActivityModal
+        isOpen={showAddActivityModal}
+        onClose={() => setShowAddActivityModal(false)}
+        onSuccess={handleAddActivitySuccess}
+      />
     </>
   );
 };

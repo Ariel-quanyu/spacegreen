@@ -11,6 +11,7 @@ import Footer from './components/Footer';
 import GreenSpacesDirectory from './components/GreenSpacesDirectory';
 import VictoriaGreenSpacesDirectory from './components/VictoriaGreenSpacesDirectory';
 import CommunityDashboard from './components/CommunityDashboard';
+import Dashboard from './components/Dashboard';
 import AuthPage from './components/AuthPage';
 import AddActivityPage from './components/AddActivityPage';
 
@@ -33,6 +34,7 @@ function App() {
           <Route path="/directory" element={<GreenSpacesDirectory />} />
           <Route path="/victoria-directory" element={<VictoriaGreenSpacesDirectory />} />
           <Route path="/community" element={<CommunityDashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/add-activity" element={<AddActivityPage />} />
         </Routes>
