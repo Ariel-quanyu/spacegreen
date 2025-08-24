@@ -1,3 +1,5 @@
+import React from 'react';
+
 // Global State Management for GreenSpace App
 // Handles user-scoped localStorage and cross-component state
 
