@@ -1,101 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar, Tag, FileText, Trash2, Edit3, Activity, TrendingUp, Award, Target, Star } from 'lucide-react';
-import { storage } from '../utils/storage';
-
-// Updated Activity interface to match new data model
-interface Activity {
-  id: string;
-  title: string;
-  category: string;
-  dateISO: string;
-  note: string;
-  status: 'planned' | 'in-progress' | 'done';
-  sourceType: 'tip' | 'custom';
-  tipId: string | null;
-  frequencyPerMonth: number;
-}
+import { useGlobalState, showToast } from '../utils/globalState';
 
 const Dashboard = () => {
-  const [user, setUser] = useState(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [state, globalState] = useGlobalState();
+  const { user, activities, tips } = state;
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
-
-  // Get current user email for scoped storage
-  const getCurrentUserEmail = () => {
-    const user = storage.getUser();
-    return user?.email || 'anonymous';
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = () => {
-    setLoading(true);
-    try {
-      const userData = storage.getUser();
-      
-      // Load user-scoped activities
-      const userEmail = userData?.email || 'anonymous';
-      const userActivitiesKey = `activities__${userEmail}`;
-      const storedActivities = localStorage.getItem(userActivitiesKey);
-      const activitiesData = storedActivities ? JSON.parse(storedActivities) : [];
-      
-      setUser(userData);
-      setActivities(activitiesData);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Save activities to user-scoped localStorage
-  const saveActivities = (newActivities: Activity[]) => {
-    const userEmail = getCurrentUserEmail();
-    const userActivitiesKey = `activities__${userEmail}`;
-    localStorage.setItem(userActivitiesKey, JSON.stringify(newActivities));
-    setActivities(newActivities);
-  };
 
   const handleDeleteActivity = (id) => {
     if (window.confirm('Are you sure you want to delete this activity?')) {
-      try {
-        const updatedActivities = activities.filter(a => a.id !== id);
-        saveActivities(updatedActivities);
-        showToast('Activity deleted successfully');
-      } catch (error) {
-        console.error('Error deleting activity:', error);
-        showToast('Error deleting activity', 'error');
-      }
+      globalState.deleteActivity(id);
+      showToast('Activity deleted successfully');
     }
   };
 
-  const handleAddActivity = (activity: Activity) => {
-    saveActivities([...activities, activity]);
+  const handleAddActivity = (activity) => {
+    globalState.addActivity(activity);
     setShowAddActivityModal(false);
     showToast('Activity added successfully!');
-  };
-
-  const showToast = (message, type = 'success') => {
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `fixed top-20 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 ${
-      type === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'
-    }`;
-    toast.textContent = message;
-    toast.setAttribute('aria-live', 'polite');
-    
-    document.body.appendChild(toast);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-      if (document.body.contains(toast)) {
-        document.body.removeChild(toast);
-      }
-    }, 3000);
   };
 
   const getStats = () => {
@@ -146,17 +69,6 @@ const Dashboard = () => {
     return colors[status] || colors['planned'];
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 py-20">
@@ -195,10 +107,10 @@ const Dashboard = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome back, {user.username || user.email?.split('@')[0] || 'User'}! 👋
+            Your Activities
           </h1>
           <p className="text-xl text-gray-600">
-            Here's your activity overview and recent progress
+            Track your environmental actions and monitor your progress
           </p>
         </div>
 
@@ -292,10 +204,13 @@ const Dashboard = () => {
                           {activity.status}
                         </span>
                         {activity.tipId && (
-                          <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                          <Link
+                            to={`/tips?highlight=${activity.tipId}`}
+                            className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 hover:bg-purple-200 transition-colors duration-200"
+                          >
                             <Star className="h-3 w-3" />
-                            <span>Tip</span>
-                          </span>
+                            <span>From Tip</span>
+                          </Link>
                         )}
                       </div>
                       
@@ -364,6 +279,7 @@ const Dashboard = () => {
         <AddActivityModal
           onClose={() => setShowAddActivityModal(false)}
           onSave={handleAddActivity}
+          tips={tips}
         />
       )}
     </div>
@@ -371,10 +287,16 @@ const Dashboard = () => {
 };
 
 // Add Activity Modal Component
-const AddActivityModal = ({ onClose, onSave }: {
+const AddActivityModal = ({ onClose, onSave, tips = [] }: {
   onClose: () => void;
-  onSave: (activity: Activity) => void;
+  onSave: (activity: any) => void;
+  tips?: any[];
 }) => {
+  const [activeTab, setActiveTab] = useState('custom');
+  const [selectedTip, setSelectedTip] = useState(null);
+  const [tipSearch, setTipSearch] = useState('');
+  const [tipCategory, setTipCategory] = useState('All');
+  
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -384,6 +306,26 @@ const AddActivityModal = ({ onClose, onSave }: {
     frequencyPerMonth: 1
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const filteredTips = tips.filter(tip => {
+    const matchesSearch = tip.title.toLowerCase().includes(tipSearch.toLowerCase()) ||
+                         tip.summary.toLowerCase().includes(tipSearch.toLowerCase());
+    const matchesCategory = tipCategory === 'All' || tip.category === tipCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ['All', 'Energy', 'Water', 'Transport', 'Waste', 'Food'];
+
+  const handleTipSelect = (tip) => {
+    setSelectedTip(tip);
+    setFormData(prev => ({
+      ...prev,
+      title: tip.title,
+      category: tip.category,
+      tipId: tip.id,
+      note: `From tip: ${tip.summary}`
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -399,7 +341,7 @@ const AddActivityModal = ({ onClose, onSave }: {
       return;
     }
 
-    const activity: Activity = {
+    const activity = {
       id: `activity_${Date.now()}`,
       title: formData.title.trim(),
       category: formData.category.trim(),
@@ -407,7 +349,8 @@ const AddActivityModal = ({ onClose, onSave }: {
       note: formData.note.trim(),
       status: formData.status,
       sourceType: 'custom',
-      tipId: null,
+      sourceType: selectedTip ? 'tip' : 'custom',
+      tipId: selectedTip?.id || null,
       frequencyPerMonth: formData.frequencyPerMonth
     };
 
@@ -444,7 +387,76 @@ const AddActivityModal = ({ onClose, onSave }: {
             </button>
           </div>
 
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => setActiveTab('tip')}
+              className={`flex-1 py-2 px-4 text-sm font-medium ${
+                activeTab === 'tip'
+                  ? 'border-b-2 border-emerald-500 text-emerald-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              From a Tip
+            </button>
+            <button
+              onClick={() => setActiveTab('custom')}
+              className={`flex-1 py-2 px-4 text-sm font-medium ${
+                activeTab === 'custom'
+                  ? 'border-b-2 border-emerald-500 text-emerald-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Custom
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            {activeTab === 'tip' && (
+              <div className="mb-6">
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Search tips..."
+                    value={tipSearch}
+                    onChange={(e) => setTipSearch(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                  
+                  <select
+                    value={tipCategory}
+                    onChange={(e) => setTipCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {filteredTips.map(tip => (
+                      <button
+                        key={tip.id}
+                        type="button"
+                        onClick={() => handleTipSelect(tip)}
+                        className={`w-full text-left p-3 rounded-lg border transition-colors duration-200 ${
+                          selectedTip?.id === tip.id
+                            ? 'border-emerald-500 bg-emerald-50'
+                            : 'border-gray-200 hover:border-emerald-300'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900">{tip.title}</div>
+                        <div className="text-sm text-gray-600">{tip.category} • {tip.difficulty}</div>
+                        <div className="text-xs text-emerald-600">
+                          💰${tip.impact.money_aud}/mo • 🌱{tip.impact.co2_kg}kg CO₂/mo
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Title *
@@ -453,6 +465,7 @@ const AddActivityModal = ({ onClose, onSave }: {
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
+                disabled={activeTab === 'tip' && selectedTip}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
                   errors.title ? 'border-red-500' : 'border-gray-200'
                 }`}
@@ -468,6 +481,7 @@ const AddActivityModal = ({ onClose, onSave }: {
               <select
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
+                disabled={activeTab === 'tip' && selectedTip}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
                   errors.category ? 'border-red-500' : 'border-gray-200'
                 }`}
@@ -557,7 +571,7 @@ const AddActivityModal = ({ onClose, onSave }: {
                 type="submit"
                 className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
               >
-                Save Activity
+                {activeTab === 'tip' && selectedTip ? 'Add from Tip' : 'Save Activity'}
               </button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Lightbulb, Droplets, Recycle, Sun, Leaf, Zap, Home, Car, ShoppingBag, Filter, Search, Clock, DollarSign, TrendingDown, ChevronRight, ChevronDown, Star, Plus, Check } from 'lucide-react';
-import { storage } from '../utils/storage';
+import { useGlobalState, showToast } from '../utils/globalState';
 
 // Data model for sustainability tips
 interface Tip {
@@ -256,54 +257,43 @@ const difficultyColors = {
 };
 
 const InteractiveSustainabilityTips = () => {
-  const [tips, setTips] = useState<Tip[]>([]);
+  const [state, globalState] = useGlobalState();
+  const { tips, user } = state;
+  const location = useLocation();
+  
   const [filteredTips, setFilteredTips] = useState<Tip[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
-  const [completedTips, setCompletedTips] = useState<Set<string>>(new Set());
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [selectedTipForActivity, setSelectedTipForActivity] = useState<Tip | null>(null);
 
-  // Get current user email for scoped storage
-  const getCurrentUserEmail = () => {
-    const user = storage.getUser();
-    return user?.email || 'anonymous';
-  };
-
-  // Initialize tips data
+  // Handle URL parameters for filtering and highlighting
   useEffect(() => {
-    const storedTips = localStorage.getItem('tips_data');
-    const storedCompleted = localStorage.getItem('completed_tips');
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category');
+    const sort = params.get('sort');
+    const highlight = params.get('highlight');
     
-    if (storedTips) {
-      const parsedTips = JSON.parse(storedTips);
-      setTips(parsedTips);
-      setFilteredTips(parsedTips);
-    } else {
-      setTips(seedTips);
-      setFilteredTips(seedTips);
-      localStorage.setItem('tips_data', JSON.stringify(seedTips));
+    if (category) {
+      const categories = category.split(',');
+      if (categories.length === 1) {
+        setSelectedCategory(categories[0]);
+      }
     }
-
-    // Load user-scoped completed tips and activities
-    const userEmail = getCurrentUserEmail();
-    const userCompletedKey = `tips_done__${userEmail}`;
-    const userActivitiesKey = `activities__${userEmail}`;
     
-    const storedUserCompleted = localStorage.getItem(userCompletedKey);
-    const storedUserActivities = localStorage.getItem(userActivitiesKey);
-
-    if (storedUserCompleted) {
-      setCompletedTips(new Set(JSON.parse(storedUserCompleted)));
+    if (highlight) {
+      setExpandedTip(highlight);
+      // Scroll to highlighted tip after a short delay
+      setTimeout(() => {
+        const element = document.getElementById(`tip-${highlight}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     }
-
-    if (storedUserActivities) {
-      setActivities(JSON.parse(storedUserActivities));
-    }
-  }, []);
+  }, [location.search]);
 
   // Filter tips based on search and filters
   useEffect(() => {
@@ -320,22 +310,6 @@ const InteractiveSustainabilityTips = () => {
     setFilteredTips(filtered);
   }, [tips, selectedCategory, selectedDifficulty, searchTerm]);
 
-  // Save activities to user-scoped localStorage
-  const saveActivities = (newActivities: Activity[]) => {
-    const userEmail = getCurrentUserEmail();
-    const userActivitiesKey = `activities__${userEmail}`;
-    localStorage.setItem(userActivitiesKey, JSON.stringify(newActivities));
-    setActivities(newActivities);
-  };
-
-  // Save completed tips to user-scoped localStorage
-  const saveCompletedTips = (newCompleted: Set<string>) => {
-    const userEmail = getCurrentUserEmail();
-    const userCompletedKey = `tips_done__${userEmail}`;
-    localStorage.setItem(userCompletedKey, JSON.stringify([...newCompleted]));
-    setCompletedTips(newCompleted);
-  };
-
   // Add activity from tip
   const addActivityFromTip = (tip: Tip) => {
     setSelectedTipForActivity(tip);
@@ -344,38 +318,12 @@ const InteractiveSustainabilityTips = () => {
 
   // Mark tip as done (creates activity if needed)
   const markTipDone = (tipId: string) => {
-    const tip = tips.find(t => t.id === tipId);
-    if (!tip) return;
-
-    // Check if there's already an activity for this tip
-    const existingActivity = activities.find(a => a.tipId === tipId);
-    
-    if (existingActivity) {
-      // Update existing activity to done
-      const updatedActivities = activities.map(a => 
-        a.tipId === tipId ? { ...a, status: 'done' as const, dateISO: new Date().toISOString().split('T')[0] } : a
-      );
-      saveActivities(updatedActivities);
-    } else {
-      // Create new activity with done status
-      const newActivity: Activity = {
-        id: `activity_${Date.now()}`,
-        title: tip.title,
-        category: tip.category,
-        dateISO: new Date().toISOString().split('T')[0],
-        note: `Completed: ${tip.summary}`,
-        status: 'done',
-        sourceType: 'tip',
-        tipId: tip.id,
-        frequencyPerMonth: 1
-      };
-      saveActivities([...activities, newActivity]);
+    if (!user) {
+      showToast('Please sign in to track your progress', 'info');
+      return;
     }
 
-    // Also mark tip as completed
-    const newCompleted = new Set(completedTips);
-    newCompleted.add(tipId);
-    saveCompletedTips(newCompleted);
+    globalState.markTipDone(tipId);
 
     // Show toast
     showToast('Tip marked as done! Activity recorded.', 'success');
@@ -383,65 +331,32 @@ const InteractiveSustainabilityTips = () => {
 
   // Toggle tip completion (for the star button)
   const toggleTipCompletion = (tipId: string) => {
-    const newCompleted = new Set(completedTips);
-    if (newCompleted.has(tipId)) {
-      newCompleted.delete(tipId);
-      showToast('Tip unmarked', 'info');
-    } else {
-      markTipDone(tipId);
-      return; // markTipDone handles the toast
+    if (!user) {
+      showToast('Please sign in to save tips', 'info');
+      return;
     }
-    saveCompletedTips(newCompleted);
-  };
-
-  // Show toast notification
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    const toast = document.createElement('div');
-    const bgColor = type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-blue-600' : 'bg-emerald-600';
-    toast.className = `fixed top-20 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300`;
-    toast.textContent = message;
-    toast.setAttribute('aria-live', 'polite');
     
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      if (document.body.contains(toast)) {
-        document.body.removeChild(toast);
-      }
-    }, 3000);
+    if (globalState.isTipSaved(tipId)) {
+      globalState.toggleTipSaved(tipId);
+      showToast('Tip removed from saved', 'info');
+    } else {
+      globalState.toggleTipSaved(tipId);
+      showToast('Tip saved!', 'success');
+    }
   };
 
   const calculateTotalImpact = () => {
-    // Calculate impact from activities marked as done this month
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-    const doneActivities = activities.filter(activity => 
-      activity.status === 'done' && 
-      activity.dateISO.startsWith(currentMonth)
-    );
-
-    return doneActivities.reduce((total, activity) => {
-      if (activity.tipId) {
-        const tip = tips.find(t => t.id === activity.tipId);
-        if (tip) {
-          return {
-            co2_kg: total.co2_kg + (tip.impact.co2_kg * activity.frequencyPerMonth),
-            money_aud: total.money_aud + (tip.impact.money_aud * activity.frequencyPerMonth),
-            water_l: total.water_l + (tip.impact.water_l * activity.frequencyPerMonth)
-          };
-        }
-      }
-      return total;
-    }, { co2_kg: 0, money_aud: 0, water_l: 0 });
+    return globalState.computeMonthlyImpact();
   };
 
   // Check if tip has associated activity
   const getTipActivityStatus = (tipId: string) => {
-    const activity = activities.find(a => a.tipId === tipId);
+    const activity = state.activities.find(a => a.tipId === tipId);
     return activity?.status || null;
   };
 
   const totalImpact = calculateTotalImpact();
-  const completedActivitiesCount = activities.filter(a => a.status === 'done').length;
+  const completedActivitiesCount = state.activities.filter(a => a.status === 'done').length;
 
   return (
     <section className="py-20 bg-gradient-to-br from-emerald-50 to-teal-50">
@@ -457,7 +372,7 @@ const InteractiveSustainabilityTips = () => {
         </div>
 
         {/* Impact Summary */}
-        {completedActivitiesCount > 0 && (
+        {user && completedActivitiesCount > 0 && (
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 mb-8 text-white">
             <h3 className="text-xl font-bold mb-4 flex items-center">
               <Star className="h-6 w-6 mr-2" />
@@ -541,23 +456,24 @@ const InteractiveSustainabilityTips = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTips.map((tip) => {
             const IconComponent = categoryIcons[tip.category as keyof typeof categoryIcons] || Leaf;
-            const isCompleted = completedTips.has(tip.id);
+            const isSaved = user && globalState.isTipSaved(tip.id);
             const activityStatus = getTipActivityStatus(tip.id);
             const isExpanded = expandedTip === tip.id;
 
             return (
               <div
+                id={`tip-${tip.id}`}
                 key={tip.id}
                 className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 ${
-                  isCompleted ? 'ring-2 ring-emerald-500' : ''
+                  isSaved ? 'ring-2 ring-emerald-500' : ''
                 } ${activityStatus === 'done' ? 'bg-emerald-50' : ''}`}
               >
                 {/* Card Header */}
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${isCompleted ? 'bg-emerald-100' : 'bg-gray-100'}`}>
-                        <IconComponent className={`h-5 w-5 ${isCompleted ? 'text-emerald-600' : 'text-gray-600'}`} />
+                      <div className={`p-2 rounded-lg ${isSaved ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                        <IconComponent className={`h-5 w-5 ${isSaved ? 'text-emerald-600' : 'text-gray-600'}`} />
                       </div>
                       <div>
                         <span className="text-sm text-gray-500">{tip.category}</span>
@@ -566,13 +482,13 @@ const InteractiveSustainabilityTips = () => {
                     <button
                       onClick={() => toggleTipCompletion(tip.id)}
                       className={`p-2 rounded-lg transition-colors duration-200 ${
-                        isCompleted 
+                        isSaved 
                           ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' 
                           : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                       }`}
-                      title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
+                      title={isSaved ? 'Remove from saved' : 'Save tip'}
                     >
-                      <Star className={`h-5 w-5 ${isCompleted ? 'fill-current' : ''}`} />
+                      <Star className={`h-5 w-5 ${isSaved ? 'fill-current' : ''}`} />
                     </button>
                   </div>
 
@@ -590,6 +506,7 @@ const InteractiveSustainabilityTips = () => {
                   )}
 
                   <h3 className={`text-lg font-bold mb-2 ${isCompleted ? 'text-emerald-800' : 'text-gray-900'}`}>
+                  <h3 className={`text-lg font-bold mb-2 ${isSaved ? 'text-emerald-800' : 'text-gray-900'}`}>
                     {tip.title}
                   </h3>
 
@@ -655,15 +572,15 @@ const InteractiveSustainabilityTips = () => {
                       </button>
                       <button
                         onClick={() => markTipDone(tip.id)}
-                        disabled={isCompleted}
+                        disabled={activityStatus === 'done'}
                         className={`py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1 text-sm ${
-                          isCompleted 
+                          activityStatus === 'done'
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                             : 'bg-emerald-600 text-white hover:bg-emerald-700'
                         }`}
                       >
                         <Check className="h-3 w-3" />
-                        <span>{isCompleted ? 'Done' : 'Mark Done'}</span>
+                        <span>{activityStatus === 'done' ? 'Done' : 'Mark Done'}</span>
                       </button>
                     </div>
                   </div>
@@ -753,7 +670,7 @@ const InteractiveSustainabilityTips = () => {
             setSelectedTipForActivity(null);
           }}
           onSave={(activity) => {
-            saveActivities([...activities, activity]);
+            globalState.addActivity(activity);
             setShowAddActivityModal(false);
             setSelectedTipForActivity(null);
             showToast('Activity added successfully!');

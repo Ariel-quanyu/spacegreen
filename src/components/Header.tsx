@@ -177,17 +177,19 @@ const Header = () => {
           <nav className="hidden md:flex items-center space-x-8">
             {isDirectoryPage ? (
               <>
-                <Link to="/#spaces" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Discover</Link>
+                <Link to="/tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Tips</Link>
+                <Link to="/activities" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Activities</Link>
+                <Link to="/calculator" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Calculator</Link>
+                <Link to="/impact" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Impact</Link>
                 <Link to="/#map" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Map</Link>
-                <Link to="/#tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Sustainability</Link>
-                <Link to="/#events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</Link>
               </>
             ) : (
               <>
-                <a href="#spaces" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Discover</a>
+                <Link to="/tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Tips</Link>
+                <Link to="/activities" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Activities</Link>
+                <Link to="/calculator" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Calculator</Link>
+                <Link to="/impact" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Impact</Link>
                 <a href="#map" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Map</a>
-                <a href="#tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Sustainability</a>
-                <a href="#events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</a>
               </>
             )}
             
@@ -220,12 +222,20 @@ const Header = () => {
                     aria-orientation="vertical"
                   >
                     <Link
-                      to="/dashboard"
+                      to="/activities"
                       className="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-200"
                       role="menuitem"
                       onClick={() => setIsDropdownOpen(false)}
                     >
-                      Dashboard
+                      My Activities
+                    </Link>
+                    <Link
+                      to="/impact"
+                      className="block px-4 py-2 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-200"
+                      role="menuitem"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      My Impact
                     </Link>
                     <button
                       onClick={() => {
@@ -273,19 +283,27 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-emerald-100">
             <nav className="flex flex-col space-y-4">
-              <a href="#spaces" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Discover</a>
+              <Link to="/tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Tips</Link>
+              <Link to="/activities" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Activities</Link>
+              <Link to="/calculator" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Calculator</Link>
+              <Link to="/impact" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Impact</Link>
               <a href="#map" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Map</a>
-              <a href="#tips" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Sustainability</a>
-              <a href="#events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</a>
               
               {isLoggedIn && user ? (
                 <>
                   <Link 
-                    to="/dashboard"
+                    to="/activities"
                     className="text-gray-700 hover:text-emerald-600 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Dashboard
+                    My Activities
+                  </Link>
+                  <Link 
+                    to="/impact"
+                    className="text-gray-700 hover:text-emerald-600 transition-colors duration-200"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    My Impact
                   </Link>
                   <button
                     onClick={() => setShowAddActivityModal(true)}

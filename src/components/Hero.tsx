@@ -23,10 +23,10 @@ const Hero = () => {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button
-                onClick={() => navigate('/directory')}
+                onClick={() => navigate('/tips')}
                 className="bg-emerald-600 text-white px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
               >
-                <span>Explore Green Spaces</span>
+                <span>Explore Tips</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
               <button
@@ -34,6 +34,12 @@ const Hero = () => {
                 className="border-2 border-emerald-600 text-emerald-600 px-8 py-4 rounded-xl hover:bg-emerald-600 hover:text-white transition-all duration-300 font-semibold"
               >
                 Join Community
+              </button>
+              <button
+                onClick={() => navigate('/calculator')}
+                className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-xl hover:bg-blue-600 hover:text-white transition-all duration-300 font-semibold"
+              >
+                Carbon Calculator
               </button>
             </div>
 
@@ -44,21 +50,21 @@ const Hero = () => {
                   <MapPin className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900">150+</div>
-                <div className="text-sm text-gray-600">Green Spaces</div>
+                <div className="text-sm text-gray-600">Sustainability Tips</div>
               </div>
               <div className="text-center">
                 <div className="bg-teal-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <Users className="h-6 w-6 text-teal-600" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900">2.5K</div>
-                <div className="text-sm text-gray-600">Community</div>
+                <div className="text-sm text-gray-600">Active Users</div>
               </div>
               <div className="text-center">
                 <div className="bg-cyan-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <TreePine className="h-6 w-6 text-cyan-600" />
                 </div>
                 <div className="text-2xl font-bold text-gray-900">95%</div>
-                <div className="text-sm text-gray-600">Eco-Friendly</div>
+                <div className="text-sm text-gray-600">Impact Achieved</div>
               </div>
             </div>
           </div>
