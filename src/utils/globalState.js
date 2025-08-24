@@ -396,6 +396,14 @@ class GlobalState {
 
       if (activity.sourceType === 'calculator' && activity.metrics?.co2_kg) {
         acc.co2_kg += activity.metrics.co2_kg;
+        return acc;
+      }
+
+      // Handle event activities with expected impact
+      if (activity.sourceType === 'event' && activity.expectedImpact) {
+        acc.co2_kg += activity.expectedImpact.co2_kg || 0;
+        acc.money_aud += activity.expectedImpact.money_aud || 0;
+        acc.water_l += activity.expectedImpact.water_l || 0;
       }
 
       return acc;

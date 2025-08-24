@@ -17,6 +17,7 @@ import AddActivityPage from './components/AddActivityPage';
 import InteractiveSustainabilityTips from './components/InteractiveSustainabilityTips';
 import ImpactDashboard from './components/ImpactDashboard';
 import CarbonCalculator from './components/CarbonCalculator';
+import EventsPage from './components/EventsPage';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
           <Route path="/activities" element={<Dashboard />} />
           <Route path="/calculator" element={<CarbonCalculator />} />
           <Route path="/impact" element={<ImpactDashboard />} />
+          <Route path="/events" element={<EventsPage />} />
         </Routes>
         <Footer />
       </div>

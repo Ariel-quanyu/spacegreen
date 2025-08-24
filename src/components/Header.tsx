@@ -181,6 +181,7 @@ const Header = () => {
                 <Link to="/activities" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Activities</Link>
                 <Link to="/calculator" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Calculator</Link>
                 <Link to="/impact" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Impact</Link>
+                <Link to="/events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</Link>
                 <Link to="/#map" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Map</Link>
               </>
             ) : (
@@ -189,6 +190,7 @@ const Header = () => {
                 <Link to="/activities" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Activities</Link>
                 <Link to="/calculator" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Calculator</Link>
                 <Link to="/impact" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Impact</Link>
+                <Link to="/events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</Link>
                 <a href="#map" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Map</a>
               </>
             )}
@@ -287,6 +289,7 @@ const Header = () => {
               <Link to="/activities" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Activities</Link>
               <Link to="/calculator" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Calculator</Link>
               <Link to="/impact" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Impact</Link>
+              <Link to="/events" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Events</Link>
               <a href="#map" className="text-gray-700 hover:text-emerald-600 transition-colors duration-200">Map</a>
               
               {isLoggedIn && user ? (

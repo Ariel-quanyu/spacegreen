@@ -1,5 +1,10 @@
 import React from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, Clock, MapPin } from 'lucide-react';
+import { eventStorage, showToast } from '../utils/eventStorage';
+import { useGlobalState } from '../utils/globalState';
+import EventProposalModal from './EventProposalModal';
 
 const events = [
   {
@@ -77,8 +82,23 @@ const events = [
 ];
 
 const CommunityEvents = () => {
+  const [state] = useGlobalState();
+  const { user } = state;
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmitProposal = () => {
+    if (!user) {
+      // Redirect to auth, then return to this flow
+      navigate('/auth');
+      return;
+    }
+    setShowProposalModal(true);
+  };
+
   return (
-    <section id="events" className="py-20 bg-white">
+    <>
+      <section id="events" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -152,17 +172,28 @@ const CommunityEvents = () => {
 
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Host Your Own Event</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Submit Event Proposal</h3>
             <p className="text-gray-600 mb-6">
-              Have an idea for a sustainability event? We'll help you organize and promote it to our community.
+              Have an idea for a sustainability event? Submit a proposal and we'll help you organize and promote it to our community.
             </p>
-            <button className="bg-emerald-600 text-white px-8 py-3 rounded-xl hover:bg-emerald-700 transition-colors duration-200 font-semibold">
-              Submit Event Proposal
+            <button 
+              onClick={handleSubmitProposal}
+              className="bg-emerald-600 text-white px-8 py-3 rounded-xl hover:bg-emerald-700 transition-colors duration-200 font-semibold"
+            >
+              {user ? 'Submit Event Proposal' : 'Sign In to Submit Proposal'}
             </button>
           </div>
         </div>
       </div>
-    </section>
+      </section>
+
+      {/* Event Proposal Modal */}
+      <EventProposalModal
+        isOpen={showProposalModal}
+        onClose={() => setShowProposalModal(false)}
+        user={user}
+      />
+    </>
   );
 };
 
