@@ -148,7 +148,7 @@ const Header = () => {
     // For now, the dashboard will reload when navigated to
   };
   const closeToast = () => {
-    setIsDropdownOpen(false);
+    setShowToast(false);
   };
 
   const getUserDisplayName = () => {
@@ -299,29 +299,25 @@ const Header = () => {
                       setShowAddActivityModal(true);
                       setIsMenuOpen(false);
                     }}
-                      setShowAddActivityModal(true);
-                      setIsDropdownOpen(false);
-                    }}
                     className="text-gray-700 hover:text-emerald-600 transition-colors duration-200"
+                  >
                     Add Activity
                   </button>
+                  <div className="text-sm text-gray-600 mb-2">Signed in as {getUserDisplayName()}</div>
+                  <button
+                    onClick={handleSignOut}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSignOut(e);
+                      }
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2 w-fit"
+                    type="button"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sign Out</span>
                   </button>
-                    <div className="text-sm text-gray-600 mb-2">Signed in as {getUserDisplayName()}</div>
-                    <button
-                      onClick={handleSignOut}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleSignOut(e);
-                        }
-                      }}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2 w-fit"
-                      type="button"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
                 </>
               ) : (
                 <button
