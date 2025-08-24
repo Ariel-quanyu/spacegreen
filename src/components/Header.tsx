@@ -111,8 +111,10 @@ const Header = () => {
   };
 
   const handleSignOut = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     try {
       // Sign out from Supabase
@@ -134,8 +136,14 @@ const Header = () => {
       
     } catch (error) {
       console.error('Sign out error:', error);
-      // Fallback: force redirect to home
-      window.location.assign('/');
+      
+      // Even if Supabase sign out fails, clear local state
+      handleUserSignOut();
+      setIsDropdownOpen(false);
+      setIsMenuOpen(false);
+      setToastMessage('Signed out successfully');
+      setShowToast(true);
+      navigate('/');
     }
   };
 
@@ -243,12 +251,6 @@ const Header = () => {
                     <hr className="my-2" />
                     <button
                       onClick={handleSignOut}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleSignOut(e);
-                        }
-                      }}
                       className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center space-x-2"
                       role="menuitem"
                       type="button"
@@ -305,12 +307,6 @@ const Header = () => {
                   <div className="text-sm text-gray-600 mb-2">Signed in as {getUserDisplayName()}</div>
                   <button
                     onClick={handleSignOut}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleSignOut(e);
-                      }
-                    }}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2 w-fit"
                     type="button"
                   >
