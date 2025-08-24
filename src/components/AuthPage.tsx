@@ -36,12 +36,12 @@ const AuthPage = () => {
             // Still navigate to community - we'll handle missing profile there
           }
           
-          navigate('/');
+          navigate('/', { replace: true });
         }
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       setError(error.message);
