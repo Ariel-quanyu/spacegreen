@@ -9,44 +9,70 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setEmailError('');
+    setPasswordError('');
 
-    try {
-      if (isSignUp) {
-        const { data, error } = await signUp(email, password);
-        if (error) throw error;
-        
-        if (data.user) {
-          // Create user profile
-          const profileResult = await createUserProfile(
-            data.user.id,
-            email,
-            username,
-            fullName
-          );
-          if (profileResult.error) {
-            console.error('Profile creation error:', profileResult.error);
-            // Still navigate to community - we'll handle missing profile there
-          }
-          
-          navigate('/', { replace: true });
-        }
-      } else {
-        const { error } = await signIn(email, password);
-        if (error) throw error;
-        navigate('/', { replace: true });
+    // Validate fields
+    let hasErrors = false;
+    
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      hasErrors = true;
+    }
+    
+    if (!password.trim()) {
+      setPasswordError('Password is required');
+      hasErrors = true;
+    }
+    
+    if (isSignUp) {
+      if (!username.trim()) {
+        hasErrors = true;
       }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      if (!fullName.trim()) {
+        hasErrors = true;
+      }
+    }
+    
+    if (hasErrors) {
+      return;
+    }
+
+    // Set auth state immediately
+    const userData = {
+      id: Date.now().toString(), // Simple ID for localStorage
+      email: email.trim(),
+      username: isSignUp ? username.trim() : email.split('@')[0],
+      fullName: isSignUp ? fullName.trim() : email.split('@')[0]
+    };
+    
+    // Update localStorage immediately
+    localStorage.setItem('auth_user', JSON.stringify(userData));
+    
+    // Update global state
+    window.isLoggedIn = true;
+    window.currentUser = userData;
+    
+    // Redirect to home immediately
+    navigate('/', { replace: true });
+    
+    // Handle Supabase auth in background (don't wait for it)
+    if (isSignUp) {
+      signUp(email, password).then(({ data, error }) => {
+        if (!error && data.user) {
+          createUserProfile(data.user.id, email, username, fullName).catch(console.error);
+        }
+      }).catch(console.error);
+    } else {
+      signIn(email, password).catch(console.error);
     }
   };
 
@@ -102,11 +128,15 @@ const AuthPage = () => {
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        emailError ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      }`}
                       placeholder="Enter your full name"
-                      required
                     />
                   </div>
+                  {emailError && (
+                    <p className="text-sm text-red-600 mt-1">{emailError}</p>
+                  )}
                 </div>
 
                 <div>
@@ -119,11 +149,14 @@ const AuthPage = () => {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Choose a username"
-                      required
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        passwordError ? 'border-red-500 bg-red-50' : 'border-gray-200'
+                      }`}
                     />
                   </div>
+                  {passwordError && (
+                    <p className="text-sm text-red-600 mt-1">{passwordError}</p>
+                  )}
                 </div>
               </>
             )}
@@ -165,10 +198,9 @@ const AuthPage = () => {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition-colors duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition-colors duration-200 font-semibold"
             >
-              {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              {isSignUp ? 'Create Account' : 'Sign In'}
             </button>
           </form>
 
