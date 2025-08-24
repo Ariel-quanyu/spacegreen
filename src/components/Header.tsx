@@ -116,35 +116,24 @@ const Header = () => {
       e.stopPropagation();
     }
     
-    try {
-      // Sign out from Supabase
-      await signOut();
-      
-      // Clear local state
-      handleUserSignOut();
-      
-      // Close dropdown and mobile menu
-      setIsDropdownOpen(false);
-      setIsMenuOpen(false);
-      
-      // Show success toast
-      setToastMessage('Signed out successfully');
-      setShowToast(true);
-      
-      // Navigate to home page using React Router
-      navigate('/');
-      
-    } catch (error) {
-      console.error('Sign out error:', error);
-      
-      // Even if Supabase sign out fails, clear local state
-      handleUserSignOut();
-      setIsDropdownOpen(false);
-      setIsMenuOpen(false);
-      setToastMessage('Signed out successfully');
-      setShowToast(true);
-      navigate('/');
-    }
+    // Clear local state immediately
+    handleUserSignOut();
+    
+    // Close dropdown and mobile menu
+    setIsDropdownOpen(false);
+    setIsMenuOpen(false);
+    
+    // Navigate to home page immediately
+    navigate('/');
+    
+    // Show success toast
+    setToastMessage('Signed out successfully');
+    setShowToast(true);
+    
+    // Sign out from Supabase in background (don't wait)
+    signOut().catch(error => {
+      console.error('Background sign out error:', error);
+    });
   };
 
   const handleAddActivitySuccess = (newActivity) => {
