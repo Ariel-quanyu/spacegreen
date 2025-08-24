@@ -33,7 +33,7 @@ const Hero = () => {
                 onClick={() => navigate('/auth')}
                 className="border-2 border-emerald-600 text-emerald-600 px-8 py-4 rounded-xl hover:bg-emerald-600 hover:text-white transition-all duration-300 font-semibold"
               >
-                Join Community
+                Discover Events
               </button>
               <button
                 onClick={() => navigate('/calculator')}
